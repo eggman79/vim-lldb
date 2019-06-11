@@ -6,8 +6,8 @@
 # - get_content() - returns a string with the pane contents
 #
 # Optionally, to highlight text, implement:
-# - get_highlights() - returns a map 
-# 
+# - get_highlights() - returns a map
+#
 # And call:
 # - define_highlight(unique_name, colour)
 # at some point in the constructor.
@@ -16,7 +16,7 @@
 # If the pane shows some key-value data that is in the context of a
 # single frame, inherit from FrameKeyValuePane and implement:
 # - get_frame_content(self, SBFrame frame)
-# 
+#
 #
 # If the pane presents some information that can be retrieved with
 # a simple LLDB command while the subprocess is stopped, inherit
@@ -27,12 +27,12 @@
 # Optionally, you can implement:
 # - get_selected_line()
 # to highlight a selected line and place the cursor there.
-# 
+#
 #
 # FIXME: implement WatchlistPane to displayed watched expressions
-# FIXME: define interface for interactive panes, like catching enter 
+# FIXME: define interface for interactive panes, like catching enter
 #        presses to change selected frame/thread...
-# 
+#
 
 import lldb
 import vim
@@ -70,7 +70,7 @@ def get_description(obj, option=None):
     if not success:
         return None
     return stream.GetData()
- 
+
 def get_selected_thread(target):
   """ Returns a tuple with (thread, error) where thread == None if error occurs """
   process = target.GetProcess()
@@ -263,7 +263,7 @@ class VimPane(object):
       vim.command('silent %s %s' % (method, self.name))
 
     self.window = vim.current.window
-  
+
     # Set LLDB pane options
     vim.command("setlocal buftype=nofile") # Don't try to open a file
     vim.command("setlocal noswapfile")     # Don't use a swap file
@@ -352,7 +352,11 @@ class VimPane(object):
     """ replace buffer with msg"""
     self.prepare()
 
-    msg = str(msg.encode("utf-8", "replace")).split('\n')
+    try:
+        msg = str(msg.encode("utf-8", "replace")).split('\n')
+    except:
+        msg = msg.split('\n')
+
     try:
       self.buffer.append(msg)
       vim.command("execute \"normal ggdd\"")
@@ -399,7 +403,7 @@ class FrameKeyValuePane(VimPane):
       self.changedHighlight = VimPane.CHANGED_VALUE_HIGHLIGHT_NAME_TERM
       self.define_highlight(VimPane.CHANGED_VALUE_HIGHLIGHT_NAME_TERM,
                             VimPane.CHANGED_VALUE_HIGHLIGHT_COLOUR_TERM)
- 
+
   def format_pair(self, key, value, changed = False):
     """ Formats a key/value pair. Appends a '*' if changed == True """
     marker = '*' if changed else ' '
@@ -437,7 +441,7 @@ class FrameKeyValuePane(VimPane):
       else:
         output += self.format_pair(key, value, True)
         self.changedLines.append(lineNum)
-      
+
     # Save values as oldValues
     newValues = {}
     for (key, value) in vals:
@@ -455,7 +459,7 @@ class LocalsPane(FrameKeyValuePane):
   """ Pane that displays local variables """
   def __init__(self, owner, name = 'locals'):
     FrameKeyValuePane.__init__(self, owner, name, open_below=True)
-    
+
     # FIXME: allow users to customize display of args/locals/statics/scope
     self.arguments = True
     self.show_locals = True
@@ -556,7 +560,7 @@ class StoppedCommandPane(CommandPane):
       self.selectedHighlight = VimPane.SELECTED_HIGHLIGHT_NAME_TERM
       self.define_highlight(VimPane.SELECTED_HIGHLIGHT_NAME_TERM,
                             VimPane.SELECTED_HIGHLIGHT_COLOUR_TERM)
- 
+
   def get_content(self, target, controller):
     """ Returns the output of a command that relies on the process being stopped.
         If the process is not in 'stopped' state, the process status is returned.
@@ -626,7 +630,7 @@ class BacktracePane(StoppedCommandPane):
 
 
   def get_selected_line(self):
-    """ Returns the line number in the buffer with the selected frame. 
+    """ Returns the line number in the buffer with the selected frame.
         Formula: selected_line = selected_frame_id + 2
         FIXME: the above formula hack does not work when the function return
                value is printed in the bt window; the wrong line is highlighted.
